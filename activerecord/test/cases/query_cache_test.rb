@@ -61,6 +61,7 @@ class QueryCacheTest < ActiveRecord::TestCase
     yield
   ensure
     ActiveRecord::Base.connection_handler.send(:owner_to_pool)["primary"] = old_pool
+    new_pool.shutdown! if new_pool
   end
 
   def test_query_cache_across_threads

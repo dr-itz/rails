@@ -925,9 +925,12 @@ class TransactionalFixturesOnConnectionNotification < ActiveRecord::TestCase
   def test_transaction_created_on_connection_notification
     connection = stub(transaction_open?: false)
     connection.expects(:begin_transaction).with(joinable: false)
-    pool = connection.stubs(:pool).returns(ActiveRecord::ConnectionAdapters::ConnectionPool.new(ActiveRecord::Base.connection_pool.spec))
+    real_pool = ActiveRecord::ConnectionAdapters::ConnectionPool.new(ActiveRecord::Base.connection_pool.spec)
+    pool = connection.stubs(:pool).returns(real_pool)
     pool.stubs(:lock_thread=).with(false)
     fire_connection_notification(connection)
+  ensure
+    real_pool.shutdown! if real_pool
   end
 
   def test_notification_established_transactions_are_rolled_back

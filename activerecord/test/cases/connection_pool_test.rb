@@ -26,7 +26,7 @@ module ActiveRecord
       end
 
       teardown do
-        @pool.disconnect!
+        @pool.shutdown!
       end
 
       def active_connections(pool)
@@ -288,6 +288,8 @@ module ActiveRecord
           assert pool.connection
           pool.connection.close
         end.join
+      ensure
+        pool.shutdown! if pool
       end
 
       def test_checkout_order_is_lifo
@@ -409,6 +411,8 @@ module ActiveRecord
 
         pool.disconnect!
         assert pool.connection
+      ensure
+        pool.shutdown! if pool
       end
 
       def test_automatic_reconnect_can_be_disabled
@@ -423,6 +427,8 @@ module ActiveRecord
         assert_raises(ConnectionNotEstablished) do
           pool.with_connection
         end
+      ensure
+        pool.shutdown! if pool
       end
 
       def test_pool_sets_connection_visitor
@@ -453,6 +459,7 @@ module ActiveRecord
         assert_equal "ActiveRecord::ConnectionAdapters::ConnectionPoolTest::ConnectionTestModel", payloads[0][:spec_name]
       ensure
         ActiveSupport::Notifications.unsubscribe(subscription) if subscription
+        ConnectionTestModel.remove_connection
       end
 
       def test_pool_sets_connection_schema_cache
@@ -658,7 +665,7 @@ module ActiveRecord
           one_conn_spec.config[:pool] = 1 # this is safe to do, because .dupped ConnectionSpecification also auto-dups its config
           yield(pool = ConnectionPool.new(one_conn_spec))
         ensure
-          pool.disconnect! if pool
+          pool.shutdown! if pool
         end
     end
   end
